@@ -18,8 +18,6 @@ public Plugin myinfo =
 	url = "http://steamcommunity.com/profiles/76561198026784913"
 }
 
-#define GAMEDATE_FILE "L4D2_Buy_Store"
-
 #define L4D_TEAM_SPECTATOR		1
 #define L4D_TEAM_SURVIVORS 		2
 #define L4D_TEAM_INFECTED 		3
@@ -35,6 +33,9 @@ public Plugin myinfo =
 #define	MAX_WEAPONS2       29
 #define X_REJUMPBOOST 		250.0
 #define MODEL_GASCAN			"models/props_junk/gascan001a.mdl"
+
+#define CBaseAbility "CBaseAbility"
+#define m_nextActivationTimer "m_nextActivationTimer"
 
 ConVar g_BoomerKilled,g_ChargerKilled,g_SmokerKilled,g_HunterKilled,g_JockeyKilled,g_SpitterKilled,
 	g_WitchKilled,g_ZombieKilled, g_DecayDecay, g_SpawnRange, g_MaxIncapCount, g_PlayerRequired,
@@ -82,7 +83,6 @@ bool bLimitInfectedBuy;
 Handle InfiniteAmmo_Timer[MAXPLAYERS+1] = {null}; //player can Infinite Ammo
 Handle InfectedImmuneEverything_Timer[MAXPLAYERS+1] = {null}; //infected player immune everything
 Handle PlayerLeftStartTimer, CountDownTimer, DeadEyeTimer, FreezeTimer;
-Handle g_hCharger, g_hJockey, g_hSmoker, g_hHunter, g_hReset;
 int g_iCharger, g_iHunter, g_iJockey, g_iSmoker, g_iZombieClass, g_iVelocity;
 float g_flCharger, g_flSmoker, g_flJockey;
 StringMap g_smWeaponShortCut;
@@ -311,8 +311,6 @@ public void OnPluginStart()
 {
 	LoadTranslations("common.phrases");
 	LoadTranslations("L4D2_Buy_Store.phrases");
-
-	LoadGamedata();
 
 	g_iCharger = FindSendPropInfo("CTerrorPlayer", "m_pummelVictim"); 
 	g_iHunter = FindSendPropInfo("CTerrorPlayer", "m_pounceVictim");
@@ -2298,7 +2296,10 @@ bool CanSurvivorBuy(int client, char[] ShopItemName = "")
 		return false;
 	}
 
-	if(IsSurvivorPinned(client) && strcmp(ShopItemName, "Slay_Infected", false) != 0)
+	if(IsSurvivorPinned(client) && (
+		strcmp(ShopItemName, "Slay_Infected", false) != 0 &&
+		strcmp(ShopItemName, "Freeze_Infected", false) != 0)
+		)
 	{
 		CPrintToChat(client, "%T", "Can't buy when being attacked", client);
 		return false;
@@ -4065,59 +4066,7 @@ void Notify_GetCredit(int client, const char[] sWord, int money)
 }
 
 
-//credit to BHaType: Release Victim Extended Version (https://forums.alliedmods.net/showthread.php?p=2676902)
-void LoadGamedata()
-{
-	GameData hData = new GameData(GAMEDATE_FILE);
-	if(hData == null)
-	{
-		SetFailState("Unable to find %s.txt gamedata file.", GAMEDATE_FILE);
-	}
-
-	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hData, SDKConf_Signature, "CTerrorPlayer::OnPummelEnded");
-	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);
-	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer);
-	g_hCharger = EndPrepSDKCall();
-
-	if( g_hCharger == null)
-		SetFailState("Could not find \"CTerrorPlayer::OnPummelEnded\" signature.");
-	
-	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hData, SDKConf_Signature, "CTerrorPlayer::ReleaseTongueVictim");
-	PrepSDKCall_AddParameter(SDKType_Bool, SDKPass_Plain);
-	g_hSmoker = EndPrepSDKCall();
-
-	if( g_hSmoker == null)
-		SetFailState("Could not find \"CTerrorPlayer::ReleaseTongueVictim\" signature.");
-	
-	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hData, SDKConf_Signature, "CTerrorPlayer::OnPounceEnded");
-	g_hHunter = EndPrepSDKCall();
-
-	if( g_hHunter == null)
-		SetFailState("Could not find \"CTerrorPlayer::OnPounceEnded\" signature.");
-	
-	StartPrepSDKCall(SDKCall_Player);
-	PrepSDKCall_SetFromConf(hData, SDKConf_Signature, "CTerrorPlayer::OnRideEnded");
-	PrepSDKCall_AddParameter(SDKType_CBasePlayer, SDKPass_Pointer);
-	g_hJockey = EndPrepSDKCall();
-
-	if( g_hJockey == null)
-		SetFailState("Could not find \"CTerrorPlayer::OnRideEnded\" signature.");
-	
-	StartPrepSDKCall(SDKCall_Entity);
-	PrepSDKCall_SetFromConf(hData, SDKConf_Signature, "CBaseAbility::StartActivationTimer");
-	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
-	PrepSDKCall_AddParameter(SDKType_Float, SDKPass_Plain);
-	g_hReset = EndPrepSDKCall();
-
-	if( g_hReset == null)
-		SetFailState("Could not find \"CBaseAbility::StartActivationTimer\" signature.");
-	
-	delete hData;
-}
-
+//credit to BHaType & Shadowysn: Release Victim Extended Version (https://forums.alliedmods.net/showpost.php?p=2785929&postcount=25)
 void ReleaseVictim(int client)
 {
 	int iClass = GetEntData(client, g_iZombieClass), index;
@@ -4141,18 +4090,12 @@ void ReleaseVictim(int client)
 	if (index <= 0 || (iClass == 1 && index != 3))
 		return;
 	
-	Release(client, iClass);
+	Release(client);
 }
 
-void Release (int client, int iClass)
+void Release (int client)
 {
-	switch (iClass)
-	{
-		case 6: SDKCall(g_hCharger, client, true, client);
-		case 3: SDKCall(g_hHunter, client);
-		case 5: SDKCall(g_hJockey, client, client);
-		case 1: SDKCall(g_hSmoker, client, true);
-	}
+	KnockAttacker(client);
 	
 	float vOrigin[3];
 	GetClientAbsOrigin(client, vOrigin);
@@ -4163,6 +4106,19 @@ void Release (int client, int iClass)
 	CreateTimer(0.05, tFly, GetClientUserId(client));
 		
 	CreateTimer(0.2, tReset, GetClientUserId(client)); 
+}
+
+void KnockAttacker(int attacker)
+{
+	SetVariantString("self.Stagger(self.GetOrigin())");
+	AcceptEntityInput(attacker, "RunScriptCode");
+	SetDTCountdownTimer(attacker, "CTerrorPlayer", "m_staggerTimer", 0.0);
+}
+
+void SetDTCountdownTimer(int entity, const char[] classname, const char[] timer_str, float duration)
+{
+	SetEntDataFloat(entity, (FindSendPropInfo(classname, timer_str)+4), duration, true);
+	SetEntDataFloat(entity, (FindSendPropInfo(classname, timer_str)+8), GetGameTime()+duration, true);
 }
 
 void SpoofEffect(float vOrigin[3])
@@ -4214,7 +4170,7 @@ public Action tFly (Handle timer, int client)
 	return Plugin_Continue;
 }
 
-public Action tReset (Handle timer, int client)
+Action tReset (Handle timer, int client)
 {
 	if ((client = GetClientOfUserId(client)) == 0 || !IsClientInGame(client))
 		return Plugin_Continue;
@@ -4227,9 +4183,9 @@ public Action tReset (Handle timer, int client)
 	{
 		switch (GetEntData(client, g_iZombieClass))
 		{
-			case 6: SDKCall(g_hReset, iEntity, g_flCharger, 0.0);
-			case 5: SDKCall(g_hReset, iEntity, g_flJockey, 0.0);
-			case 1: SDKCall(g_hReset, iEntity, g_flSmoker, 0.0);
+			case 6: SetDTCountdownTimer(iEntity, CBaseAbility, m_nextActivationTimer, g_flCharger);
+			case 5: SetDTCountdownTimer(iEntity, CBaseAbility, m_nextActivationTimer, g_flJockey);
+			case 1: SetDTCountdownTimer(iEntity, CBaseAbility, m_nextActivationTimer, g_flSmoker);
 		}
 	}
 
