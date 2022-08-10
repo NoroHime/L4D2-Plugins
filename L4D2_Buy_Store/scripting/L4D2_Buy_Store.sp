@@ -14,7 +14,7 @@ public Plugin myinfo =
 	name = "L4D2 Survivor and Infected Buy Shop", 
 	author = "(Survivor) Killing zombies and infected to earn credits + (Infected) Doing Damage to survivors to earn credits", 
 	description ="Human and Zombie Shop by HarryPoter", 
-	version = "4.3", 
+	version = "4.4", 
 	url = "http://steamcommunity.com/profiles/76561198026784913"
 }
 
@@ -386,10 +386,10 @@ public void OnPluginStart()
 	HookEvent("player_hurt", Event_PlayerHurt);
 	HookEvent("player_incapacitated", Event_PlayerIncapacitated);
 	HookEvent("round_start", Event_RoundStart);
-	HookEvent("round_end",			Event_RoundEnd,		EventHookMode_PostNoCopy); //對抗模式下會觸發兩次 (第一次人類滅團之時 第二次隊伍換邊之時)
-	HookEvent("map_transition", Event_RoundEnd); //戰役模式下過關到下一關的時候 (沒有觸發round_end)
-	HookEvent("mission_lost", Event_RoundEnd); //戰役模式下滅團重來該關卡的時候 (之後有觸發round_end)
-	HookEvent("finale_vehicle_leaving", Event_RoundEnd); //救援載具離開之時  (沒有觸發round_end)
+	HookEvent("round_end",				Event_RoundEnd,		EventHookMode_PostNoCopy); //trigger twice in versus mode, one when all survivors wipe out or make it to saferom, one when second round begins.
+	HookEvent("map_transition", 		Event_RoundEnd,		EventHookMode_PostNoCopy); //all survivors make it to saferoom, and server is about to change next level in coop mode (does not trigger round_end) 
+	HookEvent("mission_lost", 			Event_RoundEnd,		EventHookMode_PostNoCopy); //all survivors wipe out in coop mode (also triggers round_end)
+	HookEvent("finale_vehicle_leaving", Event_RoundEnd,		EventHookMode_PostNoCopy); //final map final rescue vehicle leaving  (does not trigger round_end)
 	HookEvent("finale_start", OnFinaleStart_Event);
 	HookEvent("weapon_fire", Event_WeaponFire);
 	HookEvent("map_transition", Event_MapTransition); //戰役過關到下一關的時候
@@ -653,19 +653,20 @@ void GetCvars()
 public Action OnClientSayCommand(int client, const char[] command, const char[] sArgs) {
 	
 	if (client <= 0) return Plugin_Continue;
-	
-	if(g_bEnable == false) {
-		ReplyToCommand(client, "[TS] %T", "Not enough players", client, g_iPlayerRequired);
-		return Plugin_Continue;
-	}
 
-	char sTempArray[2][64];
+	static char sTempArray[2][64];
 	ExplodeString(sArgs, " ", sTempArray, sizeof(sTempArray), sizeof(sTempArray[]));
-	if( strncmp(sTempArray[0], "b", 1, false) == 0 || 
-		strncmp(sTempArray[0], "buy", 3, false) == 0 || 
-		strncmp(sTempArray[0], "shop", 4, false) == 0 ||
-		strncmp(sTempArray[0], "item", 4, false) == 0 )
+	if( strcmp(sTempArray[0], "b", false) == 0 //|| 
+		//strcmp(sTempArray[0], "buy", false) == 0 || 
+		//strcmp(sTempArray[0], "shop", false) == 0 ||
+		//strcmp(sTempArray[0], "item", false) == 0 
+		)
 	{
+		if(g_bEnable == false) {
+			ReplyToCommand(client, "[TS] %T", "Not enough players", client, g_iPlayerRequired);
+			return Plugin_Continue;
+		}
+		
 		FakeClientCommand(client, "sm_buy %s", sTempArray[1]);
 		//PrintToChatAll("sm_buy %s", sTempArray[1]);
 		return Plugin_Stop;

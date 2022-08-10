@@ -9,7 +9,7 @@ L4D2 Human and Zombie Shop by HarryPoter
 4. [INC] Multi Colors: https://forums.alliedmods.net/showthread.php?t=247770
 
 -ChangeLog-
-v4.3
+v4.4
 -Remke code
 -Translation Support
 -Add The last stand two melee
@@ -140,10 +140,7 @@ sm_shop_zombiekilled "1"
 
 -Command-
 **shop and buy (Short name available)
-	say "buy [item_name]"
 	say "b [item_name]"
-	say "shop [item_name]"
-	say "item [item_name]"
 	"sm_shop [item_name]"
 	"sm_buy [item_name]"
 	"sm_b [item_name]"
