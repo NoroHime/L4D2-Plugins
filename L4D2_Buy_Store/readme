@@ -102,6 +102,9 @@ sm_shop_player_require "4"
 // Giving money for killing a smoker
 sm_shop_smokerkilled "20"
 
+// How long could "Gain Adrenaline Power" state last for survivor special item.
+sm_shop_special_adrenaline_time "20"
+
 // How long could "Dead-Eyes" state last for survivor special item.
 sm_shop_special_dead_eyes_time "60"
 
