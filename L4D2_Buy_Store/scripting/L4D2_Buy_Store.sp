@@ -14,7 +14,7 @@ public Plugin myinfo =
 	name = "L4D2 Survivor and Infected Buy Shop", 
 	author = "(Survivor) Killing zombies and infected to earn credits + (Infected) Doing Damage to survivors to earn credits", 
 	description ="Human and Zombie Shop by HarryPoter", 
-	version = "4.4", 
+	version = "4.5", 
 	url = "http://steamcommunity.com/profiles/76561198026784913"
 }
 
@@ -43,7 +43,7 @@ ConVar g_BoomerKilled,g_ChargerKilled,g_SmokerKilled,g_HunterKilled,g_JockeyKill
 	g_hCookiesCachedEnable, g_hTKSurvivorEnable, g_hGascanMapOff, g_hColaMapOff, g_hMaxJumpLimit,
 	g_hInfiniteAmmoTime, g_hStageComplete, g_hFinalMissionComplete, g_hWipeOutSurvivor, g_hDeadEyeTime,
 	g_hInfectedShopEnable, g_hInfectedShopTime, g_hInfectedShopColdDown, g_hSurvivorShopColdDown, 
-	g_hImmuneDamageTime, g_hInfectedShopTankLimit, 
+	g_hImmuneDamageTime, g_hInfectedShopTankLimit, g_hGainPowerTime, 
 	g_hInfectedShopWitchLimit, g_hWitchSpawnSafetyRange, g_hWitchKillTime, g_hFreezeTime, g_hMaxMoney,
 	g_hNotifyKillInfectedType;
 int g_iBoomerKilled, g_iChargerKilled, g_iSmokerKilled, g_iHunterKilled, g_iJockeyKilled, g_iSpitterKilled,
@@ -53,7 +53,7 @@ int g_iBoomerKilled, g_iChargerKilled, g_iSmokerKilled, g_iHunterKilled, g_iJock
 	g_iDeadEyeTime, g_iImmuneDamageTime, g_iInfectedShopTime, g_iInfectedShopTankLimit, g_iInfectedShopWitchLimit,
 	g_iFreezeTime, g_iMaxMoney, g_iNotifyKillInfectedType;
 bool g_bEnable, g_bTKSurvivorEnable, g_bInfectedShopEnable, g_bCookiesCachedEnable;
-float g_fInfectedShopColdDown, g_fSurvivorShopColdDown, g_fWitchSpawnSafetyRange, g_fWitchKillTime;
+float g_fInfectedShopColdDown, g_fSurvivorShopColdDown, g_fWitchSpawnSafetyRange, g_fWitchKillTime, g_fGainPowerTime;
 
 int ammoOffset;	
 int g_iCredits[MAXPLAYERS + 1];
@@ -71,7 +71,7 @@ int g_iJumps[MAXPLAYERS+1];
 int g_iDamage[MAXPLAYERS+1][MAXPLAYERS+1]; //Used to temporarily store dmg to tank
 bool g_bDied[MAXPLAYERS+1]; //tank already dead
 int g_iLastHP[MAXPLAYERS+1]; //tank last hp before dead
-bool bFinaleEscapeStarted = false;
+bool g_bFinalStarted = false;
 int g_iModelIndex[MAXPLAYERS+1];			// Player Model entity reference
 int g_iTransferSelectPlayer[MAXPLAYERS+1]; //玩家選擇轉移金錢的對象
 float g_fInfectedBuyTime[MAXPLAYERS+1]; //特感玩家購買冷卻時間
@@ -230,6 +230,7 @@ static char otherMenu[][][] =
 static char survivorSpecialMenu[][][] =
 {
 	{"Fire", 			"Fire Yourself", 				"200"},
+	{"Adrenaline_Power","Gain Adrenaline Power", 		"250"},
 	{"Fire_Infeceted", 	"All Infected Gets On Fire", 	"500"},
 	{"Teleport", 		"Teleport to teammate", 		"750"},
 	{"Infinite_Ammo",	"Infinite Ammo", 				"1000"},
@@ -284,7 +285,7 @@ static char weapon_ammo[][][] =
 	{"weapon_rifle_ak47",  				"3",	"250"},
 	{"weapon_rifle_desert",				"3", 	"250"},
 	{"weapon_sniper_military",			"10", 	"100"},
-	{"weapon_grenade_launcher", 	 	"17", 	"15"},
+	{"weapon_grenade_launcher", 	 	"17", 	"20"},
 	{"weapon_rifle_sg552",	 			"3", 	"250"},
 	{"weapon_rifle_m60",  				"6",	"200"},
 	{"weapon_sniper_awp", 	 			"10", 	"100"},
@@ -386,11 +387,13 @@ public void OnPluginStart()
 	HookEvent("player_hurt", Event_PlayerHurt);
 	HookEvent("player_incapacitated", Event_PlayerIncapacitated);
 	HookEvent("round_start", Event_RoundStart);
-	HookEvent("round_end",				Event_RoundEnd,		EventHookMode_PostNoCopy); //trigger twice in versus mode, one when all survivors wipe out or make it to saferom, one when second round begins.
+	HookEvent("round_end",				Event_RoundEnd,		EventHookMode_PostNoCopy); //trigger twice in versus mode, one when all survivors wipe out or make it to saferom, one when first round ends (second round_start begins).
 	HookEvent("map_transition", 		Event_RoundEnd,		EventHookMode_PostNoCopy); //all survivors make it to saferoom, and server is about to change next level in coop mode (does not trigger round_end) 
 	HookEvent("mission_lost", 			Event_RoundEnd,		EventHookMode_PostNoCopy); //all survivors wipe out in coop mode (also triggers round_end)
 	HookEvent("finale_vehicle_leaving", Event_RoundEnd,		EventHookMode_PostNoCopy); //final map final rescue vehicle leaving  (does not trigger round_end)
-	HookEvent("finale_start", OnFinaleStart_Event);
+	HookEvent("finale_start", 			OnFinaleStart_Event, EventHookMode_PostNoCopy); //final starts, some of final maps won't trigger
+	HookEvent("finale_radio_start", 	OnFinaleStart_Event, EventHookMode_PostNoCopy); //final starts, all final maps trigger
+	HookEvent("gauntlet_finale_start", 	OnFinaleStart_Event, EventHookMode_PostNoCopy); //final starts, only rushing maps trigger (C5M5, C13M4)
 	HookEvent("weapon_fire", Event_WeaponFire);
 	HookEvent("map_transition", Event_MapTransition); //戰役過關到下一關的時候
 	HookEvent("finale_vehicle_leaving", Event_FinalVehicleLeaving); //救援載具離開之時  (沒有觸發round_end)
@@ -419,21 +422,22 @@ public void OnPluginStart()
 	g_hGascanMapOff = CreateConVar("sm_shop_gascan_map_off",	"c1m4_atrium,c6m3_port,c14m2_lighthouse",	"Can not buy gas can in these maps, separate by commas (no spaces). (0=All maps, Empty = none).", FCVAR_NOTIFY );
 	g_hColaMapOff =	CreateConVar("sm_shop_cola_map_off",	"c1m2_streets",	"Can not buy cola in these maps, separate by commas (no spaces). (0=All maps, Empty = none).", FCVAR_NOTIFY );
 	g_hMaxJumpLimit  =	CreateConVar("sm_shop_special_max_jump_limit",	"3",	"Max Air Jump Limit for survivor special item.", FCVAR_NOTIFY, true, 1.0);
-	g_hInfiniteAmmoTime  =	CreateConVar("sm_shop_special_infinite_ammo_time",	"15",	"How long could infinite ammo state last for survivor special item.", FCVAR_NOTIFY, true, 1.0);
+	g_hInfiniteAmmoTime  =	CreateConVar("sm_shop_special_infinite_ammo_time",	"20",	"How long could \"Infinite Ammo\" state last for survivor special item.", FCVAR_NOTIFY, true, 1.0);
 	g_hStageComplete =	CreateConVar("sm_shop_stage_complete", "400",	"Giving money to each alive survivor for mission accomplished award (non-final).", FCVAR_NOTIFY, true, 1.0);
 	g_hFinalMissionComplete =	CreateConVar("sm_shop_final_mission_complete", "3000",	"Giving money to each alive survivor for mission accomplished award (final).", FCVAR_NOTIFY, true, 1.0);
 	g_hWipeOutSurvivor =	CreateConVar("sm_shop_final_mission_lost", "300",	"Giving money to each infected player for wiping out survivors.", FCVAR_NOTIFY, true, 1.0);
-	g_hDeadEyeTime  =	CreateConVar("sm_shop_special_dead_eyes_time",	"60",	"How long could Dead-Eyes state last for survivor special item.", FCVAR_NOTIFY, true, 1.0);
+	g_hDeadEyeTime  =	CreateConVar("sm_shop_special_dead_eyes_time",	"60",	"How long could \"Dead-Eyes\" state last for survivor special item.", FCVAR_NOTIFY, true, 1.0);
 	g_hInfectedShopEnable =	CreateConVar("sm_shop_infected_enable", "1",	"If 1, Enable shop for infected.", FCVAR_NOTIFY, true, 0.0, true, 1.0);
 	g_hInfectedShopTime = CreateConVar("sm_shop_infected_wait_time", "10", "Infected player must wait until survivors have left start safe area for at least X seconds to buy item. (0=Infected Shop available anytime)", FCVAR_NOTIFY, true, 0.0);
 	g_hInfectedShopColdDown =	CreateConVar("sm_shop_infected_cooltime_block", "30.0",	"Cold Down Time in seconds an infected player can not buy again after player buys item. (0=off).", FCVAR_NOTIFY, true, 0.0);
 	g_hSurvivorShopColdDown =	CreateConVar("sm_shop_survivor_cooltime_block", "5.0",	"Cold Down Time in seconds a survivor player can not buy again after player buys item. (0=off).", FCVAR_NOTIFY, true, 0.0);
-	g_hImmuneDamageTime =	CreateConVar("sm_shop_special_immune_everything_time",	"8",	"How long could Immune Everything last for infected special item.", FCVAR_NOTIFY, true, 1.0);
+	g_hImmuneDamageTime =	CreateConVar("sm_shop_special_immune_everything_time",	"10",	"How long could \"Immune Everything\" last for infected special item.", FCVAR_NOTIFY, true, 1.0);
 	g_hInfectedShopTankLimit =	CreateConVar("sm_shop_infected_tank_limit",	"1",	"Tank limit on the field before infected can buy a tank. (0=Can't buy Tank)", FCVAR_NOTIFY, true, 0.0);
 	g_hInfectedShopWitchLimit =	CreateConVar("sm_shop_infected_witch_limit","4",	"Witch limit on the field before infected can buy a witch. (0=Can't buy Witch)", FCVAR_NOTIFY, true, 0.0);
 	g_hWitchSpawnSafetyRange = CreateConVar("sm_shop_infected_witch_spawn_safety_range", "1250", "How far away from survivors an infected can buy and spawn witch.", FCVAR_NOTIFY, true, 100.0);
 	g_hWitchKillTime = CreateConVar("sm_shop_infected_witch_lifespan", "180", "Amount of seconds before a witch is kicked. (only remove witches bought by player in this plugin)", FCVAR_NOTIFY, true, 1.0);
-	g_hFreezeTime =	CreateConVar("sm_shop_special_freeze_time",	"6",	"How long could Freeze-Infected state last for survivor special item.", FCVAR_NOTIFY, true, 1.0);
+	g_hFreezeTime =	CreateConVar("sm_shop_special_freeze_time",	"20",	"How long could \"Freeze-Infected\" state last for survivor special item.", FCVAR_NOTIFY, true, 1.0);
+	g_hGainPowerTime =	CreateConVar("sm_shop_special_adrenaline_time",	"20",	"How long could \"Gain Adrenaline Power\" state last for survivor special item.", FCVAR_NOTIFY, true, 1.0);
 	g_hMaxMoney =	CreateConVar("sm_shop_max_moeny_limit",	"32000",	"Maximum money limit. (Money saved when map change/leaving server)", FCVAR_NOTIFY, true, 1.0);
 	g_hNotifyKillInfectedType = CreateConVar("sm_shop_kill_infected_announce_type",	"1", "Changes how 'You got credits by killing infected' Message displays. (0: Disable, 1:In chat, 2: In Hint Box, 3: In center text)", FCVAR_NOTIFY, true, 0.0, true, 3.0);
 
@@ -477,6 +481,7 @@ public void OnPluginStart()
 	g_hWitchSpawnSafetyRange.AddChangeHook(ConVarChanged_Cvars);
 	g_hWitchKillTime.AddChangeHook(ConVarChanged_Cvars);
 	g_hFreezeTime.AddChangeHook(ConVarChanged_Cvars);
+	g_hGainPowerTime.AddChangeHook(ConVarChanged_Cvars);
 	g_hMaxMoney.AddChangeHook(ConVarChanged_Cvars);
 	g_hNotifyKillInfectedType.AddChangeHook(ConVarChanged_Cvars);
 
@@ -646,6 +651,7 @@ void GetCvars()
 	g_fWitchSpawnSafetyRange = g_hWitchSpawnSafetyRange.FloatValue;
 	g_fWitchKillTime = g_hWitchKillTime.FloatValue;
 	g_iFreezeTime = g_hFreezeTime.IntValue;
+	g_fGainPowerTime = g_hGainPowerTime.FloatValue;
 	g_iMaxMoney = g_hMaxMoney.IntValue;
 	g_iNotifyKillInfectedType = g_hNotifyKillInfectedType.IntValue;
 }
@@ -654,7 +660,7 @@ public Action OnClientSayCommand(int client, const char[] command, const char[] 
 	
 	if (client <= 0) return Plugin_Continue;
 
-	static char sTempArray[2][64];
+	char sTempArray[2][64];
 	ExplodeString(sArgs, " ", sTempArray, sizeof(sTempArray), sizeof(sTempArray[]));
 	if( strcmp(sTempArray[0], "b", false) == 0 //|| 
 		//strcmp(sTempArray[0], "buy", false) == 0 || 
@@ -1178,7 +1184,7 @@ public void Event_RoundStart(Event event, const char[] name, bool dontBroadcast)
 		g_iCanJump[i] = 0;
 		g_bClientNo_FF[i] = false;
 	}
-	bFinaleEscapeStarted = false;
+	g_bFinalStarted = false;
 }
 
 public void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast) 
@@ -1199,12 +1205,7 @@ public void Event_RoundEnd(Event event, const char[] name, bool dontBroadcast)
 
 public void OnFinaleStart_Event(Event event, const char[] name, bool dontBroadcast) 
 {
-	for( int i = 1; i <= MaxClients; i++ ) {
-		g_iJumps[i] = 0;
-		g_iLastButtons[i] = 0;
-		g_iCanJump[i] = 0;
-	}
-	bFinaleEscapeStarted = true;
+	g_bFinalStarted = true;
 }
 
 public void Event_WeaponFire(Event event, const char[] name, bool dontBroadcast) 
@@ -1262,6 +1263,7 @@ public void L4D_OnEnterGhostState(int client)
 	CreateInfectedModelGlow(client);
 }
 
+//playerspawn is triggered even when bot or human takes over each other (even they are already dead state) or a survivor is spawned
 public void Event_PlayerSpawn(Event event, const char[] name, bool dontBroadcast)
 { 
 	if( g_iPlayerSpawn == 0 && g_iRoundStart == 1 )
@@ -2097,6 +2099,15 @@ stock void CreateFires(int client, char[] displayName)
 		SetEntityRenderColor(entity, 0, 0, 0, 0);
 		AcceptEntityInput(entity, "Break");
 	}
+
+	PrintToTeam(client, L4D_TEAM_SURVIVORS, displayName);
+	
+	PlaySound(client, BUY_Sound2);
+}
+
+stock void ClientGainPower(int client, char[] displayName)
+{
+	Terror_SetAdrenalineTime(client, g_fGainPowerTime);
 
 	PrintToTeam(client, L4D_TEAM_SURVIVORS, displayName);
 	
@@ -3235,6 +3246,10 @@ int BuyItem(int client, int team, EMenuType eMenutype, int index)
 				{
 					CreateFires(client, survivorSpecialMenu[index][1]);
 				}
+				else if(strcmp(survivorSpecialMenu[index][0], "Adrenaline_Power", false) == 0)
+				{
+					ClientGainPower(client, survivorSpecialMenu[index][1]);
+				}
 				else if(strcmp(survivorSpecialMenu[index][0], "Teleport", false) == 0)
 				{
 					if (IsHandingFromLedge(client))
@@ -3267,7 +3282,7 @@ int BuyItem(int client, int team, EMenuType eMenutype, int index)
 						return 6;
 					}
 					
-					if (bFinaleEscapeStarted)
+					if (g_bFinalStarted)
 					{
 						CPrintToChat(client, "%T", "Can't buy after final rescue starts", client);
 						return 6;
@@ -3361,7 +3376,7 @@ int BuyItem(int client, int team, EMenuType eMenutype, int index)
 				}
 				
 				Checkout(client, L4D_TEAM_SURVIVORS, itemMoney, view_as<EMenuType>(eSurvivorSpecialMenu), index, survivorSpecialMenu[index][1]);
-				return 1;
+				return 2;
 			}
 			default:
 			{

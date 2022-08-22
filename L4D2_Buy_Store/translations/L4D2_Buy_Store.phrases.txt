@@ -1624,5 +1624,11 @@
 		"chi"	"不会造成与受到友伤 (当前回合)"
 		"ru"	"Урон по своим на текущей карте выключен!"
 	}
+	"Gain Adrenaline Power"
+	{
+		"en"	"Gain Adrenaline Power (Short time)"
+		"zho"	"注射興奮劑 (短暫時間)"
+		"chi"	"注射兴奋剂 (短暂时间)"
+	}
 }
 

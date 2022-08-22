@@ -9,7 +9,7 @@ L4D2 Human and Zombie Shop by HarryPoter
 4. [INC] Multi Colors: https://forums.alliedmods.net/showthread.php?t=247770
 
 -ChangeLog-
-v4.4
+v4.5
 -Remke code
 -Translation Support
 -Add The last stand two melee
@@ -102,17 +102,17 @@ sm_shop_player_require "4"
 // Giving money for killing a smoker
 sm_shop_smokerkilled "20"
 
-// How long could Dead-Eyes state last for survivor special item.
+// How long could "Dead-Eyes" state last for survivor special item.
 sm_shop_special_dead_eyes_time "60"
 
-// How long could Freeze-Infected state last for survivor special item.
-sm_shop_special_freeze_time "6"
+// How long could "Freeze-Infected" state last for survivor special item.
+sm_shop_special_freeze_time "20"
 
-// How long could Immune Everything last for infected special item.
-sm_shop_special_immune_everything_time "8"
+// How long could "Immune Everything" last for infected special item.
+sm_shop_special_immune_everything_time "10"
 
-// How long could infinite ammo state last for survivor special item.
-sm_shop_special_infinite_ammo_time "15"
+// How long could "Infinite Ammo" state last for survivor special item.
+sm_shop_special_infinite_ammo_time "20"
 
 // Max Air Jump Limit for survivor special item.
 sm_shop_special_max_jump_limit "3"
@@ -230,6 +230,7 @@ sm_shop_zombiekilled "1"
 	Survivor Special
 	{
 		"!buy Fire"		-> Fire Yourself
+		"!buy Adrenaline_Power"		-> Gain Adrenaline Power
 		"!buy Fire_Infeceted"	-> All Infected Gets On Fire
 		"!buy Teleport"		-> Teleport to teammate
 		"!buy Infinite_Ammo"	-> Infinite Ammo
@@ -288,7 +289,7 @@ sm_shop_zombiekilled "1"
 	"sm_deductmoney <name>"
 
 -How to modify the item price-
-in scripting\L4D2_Buy_Store.sp line 161~266
+in scripting\L4D2_Buy_Store.sp line 161~267
 [code]
 static char weaponsMenu[][][] = 
 {
@@ -362,6 +363,7 @@ static char otherMenu[][][] =
 static char survivorSpecialMenu[][][] =
 {
 	{"Fire", 		"Fire Yourself", 		"200"},
+	{"Adrenaline_Power","Gain Adrenaline Power", 		"250"},
 	{"Fire_Infeceted", 	"All Infected Gets On Fire", 	"500"},
 	{"Teleport", 		"Teleport to teammate", 	"750"},
 	{"Infinite_Ammo",	"Infinite Ammo", 		"1000"},
@@ -393,7 +395,7 @@ static char infectedSpecialMenu[][][] =
 	{"Health",		"Full Health", 			"350"},
 	{"Horde",		"Zombie Horde", 		"750"},
 	{"Witch",		"Witch", 			"1000"},
-	{"Teleport",		"Teleport to survivor", 	"1250"},
+	{"Teleport",	"Teleport to survivor", 	"1250"},
 	{"Immune",		"Immune Everything", 		"1500"},
 };
 [/code]
@@ -405,41 +407,44 @@ static char infectedSpecialMenu[][][] =
 Do you feel annoying that you are surrounded by common infecteds?
 No need to throw molotov or use melee, create fire around you!!
 
-2. Fire Infeceted
+2. Adrenaline_Power
+Gain Adrenaline Power RIGHT NOW!! Move Faster and Save Faster
+
+3. Fire Infeceted
 Tank throws a rock on the roof and smoker uses his tongue from nowhere, buy this item to burn them all!!
 
-3. Teleport
+4. Teleport
 Are you always alone and behind your team? Don't worry, buy this item to teleport back to your team.
 
-4. Infinite Ammo
+5. Infinite Ammo
 Just shoot the enemy and no need to reload your gun. Enjoy the fun
 
-5. Dead Eyes
+6. Dead Eyes
 (see Dead_Eyes.jpg)
 Special Infecteds always hide and seek, buy this item to see them all!!
 
-6. No Friendly Fire
+7. No Friendly Fire
 Are you tired of stupid friendly fire ? You are gonna love this item.
 
-7. Kill Commons
+8. Kill Commons
 Hate zombies, hate horde? Kill them all
 
-8. Kill Witches
+9. Kill Witches
 No longer you hear witch crying
 
-9. Heal Survivors
+10. Heal Survivors
 Your teammates are all down, buy this item to bring your team back to fight again.. No Surrender !!!
 
-10. Jump+1
+11. Jump+1
 Now you are super mario, jump and skip the path quickly.
 
-11. Slay Infected Attacker
+12. Slay Infected Attacker
 Smoker drags you, Hunter pounces you, Jockey rides on you, charger charges you, and you can't do anything. Now buy this item to slay the infected and be free again.
 
-12. Respawn Alive
+13. Respawn Alive
 Dead person isn't a good survivor, activate spell card: Dead Reborn
 
-13. Ice World
+14. Ice World
 (see Ice_World.jpg)
 Freeze All Infected, they can't move and attack. The most powerful item 
 
