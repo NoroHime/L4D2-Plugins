@@ -14,7 +14,7 @@ public Plugin myinfo =
 	name = "L4D2 Survivor and Infected Buy Shop", 
 	author = "(Survivor) Killing zombies and infected to earn credits + (Infected) Doing Damage to survivors to earn credits", 
 	description ="Human and Zombie Shop by HarryPoter", 
-	version = "4.5", 
+	version = "4.6", 
 	url = "http://steamcommunity.com/profiles/76561198026784913"
 }
 
@@ -2107,7 +2107,7 @@ stock void CreateFires(int client, char[] displayName)
 
 stock void ClientGainPower(int client, char[] displayName)
 {
-	Terror_SetAdrenalineTime(client, g_fGainPowerTime);
+	L4D2_UseAdrenaline(client, g_fGainPowerTime, true);
 
 	PrintToTeam(client, L4D_TEAM_SURVIVORS, displayName);
 	
