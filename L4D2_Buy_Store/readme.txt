@@ -3,10 +3,9 @@ L4D2 Human and Zombie Shop by HarryPoter
 (Infected) Doing Damage to survivors to earn credits
 
 -Require-
-1. Sm 1.10 or above
-2. To unlock all melee weapons in all campaigns, you MUST use the [Mission and Weapons - Info Editor]("https://forums.alliedmods.net/showthread.php?t=310586") plugin which supersedes the extension.
-3. Left 4 DHooks Direct: https://forums.alliedmods.net/showthread.php?p=2684862
-4. [INC] Multi Colors: https://forums.alliedmods.net/showthread.php?t=247770
+1. Left 4 DHooks Direct: https://forums.alliedmods.net/showthread.php?p=2684862
+2. [INC] Multi Colors: https://forums.alliedmods.net/showthread.php?t=247770
+3. To unlock all melee weapons in all campaigns, you MUST use the [Mission and Weapons - Info Editor]("https://forums.alliedmods.net/showthread.php?t=310586") plugin which supersedes the extension.
 
 -ChangeLog-
 v4.6
